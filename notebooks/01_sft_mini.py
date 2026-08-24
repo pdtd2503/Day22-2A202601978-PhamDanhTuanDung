@@ -41,7 +41,7 @@ else:  # BIGGPU
     PER_DEVICE_BATCH = 2
     GRAD_ACCUM = 4
 
-SFT_DATASET = os.environ.get("SFT_DATASET", "5CD-AI/Vietnamese-alpaca-cleaned")
+SFT_DATASET = os.environ.get("SFT_DATASET", "bkai-foundation-models/vi-alpaca")
 SFT_SLICE = 1000
 NUM_EPOCHS = 1
 
@@ -106,14 +106,34 @@ print(f"Trainable params: {sum(p.numel() for p in model.parameters() if p.requir
 # %% [markdown]
 # ## 2. Load + format VN Alpaca slice
 #
-# `5CD-AI/Vietnamese-alpaca-cleaned` is a 50k-row VN Alpaca translation. Lab 21
-# uses 1k slice for the demo run; we match that exactly so reward gap is comparable.
+# `bkai-foundation-models/vi-alpaca` is a 50k-row VN Alpaca dataset.
+# We load a 1k slice for the demo run.
 
 # %%
 from datasets import load_dataset
 
-ds = load_dataset(SFT_DATASET, split=f"train[:{SFT_SLICE}]")
-print(f"Loaded {len(ds)} rows. Columns: {ds.column_names}")
+DATASET_CANDIDATES = [
+    SFT_DATASET,
+    "bkai-foundation-models/vi-alpaca",
+    "saillab/alpaca-vietnamese-cleaned",
+    "yahma/alpaca-cleaned",
+    "tatsu-lab/alpaca",
+]
+
+ds = None
+for candidate in DATASET_CANDIDATES:
+    try:
+        print(f"Loading dataset from: {candidate}...")
+        ds = load_dataset(candidate, split=f"train[:{SFT_SLICE}]")
+        print(f"Successfully loaded {len(ds)} rows from {candidate}.")
+        break
+    except Exception as e:
+        print(f"Failed to load from {candidate}: {e}")
+
+if ds is None:
+    raise RuntimeError("Could not load any SFT dataset from candidates list.")
+
+print(f"Columns: {ds.column_names}")
 print(f"\nFirst row:\n{ds[0]}")
 
 # %%
